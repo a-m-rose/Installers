@@ -2,7 +2,7 @@ param (
     $workingDir = "$($env:localappdata)\S1_Deployment",
     $logPath = "$($workingDir)\S1_Script_log.txt",
     $InstallerName = "S1.exe",
-    $InstallSource = "$workingDir\$InstallerName",
+    $InstallSource,
     [Parameter(Mandatory = $true)]
     $InstallToken,
     $CentralErrorRepo,
@@ -10,6 +10,7 @@ param (
 )
 
 $ProgressPreference = "SilentlyContinue"
+$ErrorState = $false
 
 If (-not (Test-Path $workingDir)) {
     [void](New-Item -ItemType Directory -Path $workingDir)
@@ -72,15 +73,20 @@ if (Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') {
 }
 else {
 
-    write-log -data "SentinelOne not installed"
-
+    if (-not $InstallSource) {
+        write-log -data "No install source provided. Falling back to Internet Source"
+        $InstallSource = "$workingDir\$InstallerName"
+    }
     if (Test-Path $InstallSource) {
         write-log -data "S1_Installer_Accessible. No need to redownload."
     }
     else {
+
+        # If install source path not accessible fall back to internet source. 
+        $InstallSource = "$workingDir\$InstallerName"
         write-log -data "S1_Being_Downloaded"
         try {
-            Invoke-RestMethod -Method get -uri "https://s3.us-east-1.wasabisys.com/amrose/$InstallerName" -OutFile "$workingDir\$InstallerName"
+            Invoke-RestMethod -Method get -uri "https://s3.us-east-1.wasabisys.com/amrose/$InstallerName" -OutFile $InstallSource
         }
         catch {
             write-log -data  "Download_failed"
@@ -96,7 +102,8 @@ else {
         Try {
             write-log -data "S1_Install_Started_Source_$installsource"
             $installProcess = Start-Process -NoNewWindow -PassThru -Wait -FilePath $InstallSource -ArgumentList "-q -t $($InstallToken)"
-            write-log -data "Install_ExitCode_$($installProcess.ExitCode)"
+            $InstallExitCode = $installProcess.ExitCode
+            write-log -data "Install_ExitCode_$InstallExitCode"
         }
         Catch {
             write-log -data "Install_Failed_$($_.exception.message)"
@@ -107,7 +114,7 @@ else {
     }
     #Exit codes - https://usea1-pax8-03.sentinelone.net/docs/en/installing-windows-agent-22-1--with-the-new-installation-package.html
 
-    If ($installProcess.ExitCode -notmatch "0|12") {
+    If ($InstallExitCode -notmatch "\b0\b|\b12\b") {
 
         $ErrorState = $true
         $ErrorMessage = "$(get-date -Format G)`nInstaller exit code indicates installation not 100% success.`nExit Code:$($installProcess.ExitCode)`nSee link for S1 exit codes values - usea1-pax8-03.sentinelone.net/docs/en/installing-windows-agent-22-1--with-the-new-installation-package.html"

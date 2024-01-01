@@ -23,7 +23,7 @@ function Write-log {
         $path = $logPath
     )
     "$(get-date -Format G),$($data)" | Out-File $logPath -Encoding ascii -Append
-    if ($centralReportRepo) {"$(get-date -Format G),$($data)" | Out-File "$centralReportRepo\$($env:COMPUTERNAME).log" -Encoding ascii -Append -ErrorAction:SilentlyContinue}
+    if ($centralReportRepo) {"$(get-date -Format G),$($data)" | Out-File "$centralReportRepo\$($env:COMPUTERNAME).txt" -Encoding ascii -Append -ErrorAction:SilentlyContinue}
 
 }
 
@@ -131,7 +131,7 @@ write-log -data "ErrorState: $ErrorState"
 if ($ErrorState) {
         
 
-    try {$ErrorMessage | Out-File "$CentralErrorRepo\$($env:COMPUTERNAME).log"} catch {$ErrorMessage += "`nUnable to write error log to central repo."}
+    try {$ErrorMessage | Out-File "$CentralErrorRepo\$($env:COMPUTERNAME).txt"} catch {$ErrorMessage += "`nUnable to write error log to central repo."}
 
 
     try { $TicketDate = ((Get-Item "$workingDir\Ticket.json" -ErrorAction:SilentlyContinue).LastWriteTimeUtc).AddDays(2) ; write-log -data "Old Ticket exsists. Date: $TicketDate" } catch { $TicketDate = ((get-date).ToUniversalTime()).AddDays(-2) ; write-log -data "No Old ticket." }
@@ -159,5 +159,5 @@ if ($ErrorState) {
 }
 else {
 
-    Remove-Item "$CentralErrorRepo\$($env:COMPUTERNAME).log" -ErrorAction:SilentlyContinue
+    Remove-Item "$CentralErrorRepo\$($env:COMPUTERNAME).txt" -ErrorAction:SilentlyContinue
 }

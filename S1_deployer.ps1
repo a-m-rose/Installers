@@ -29,6 +29,7 @@ function Write-log {
 
 
 write-log -data "Script running"
+write-log -data $PSScriptRoot
 if (Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') {
     
     write-log -data "SentinelCTL found. S1 seems to be installed."

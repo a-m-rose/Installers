@@ -27,11 +27,23 @@ function Write-log {
 
 }
 
-
 write-log -data "Script running"
 write-log -data $PSScriptRoot
-if (Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') {
+
+
+try {
     
+    (Get-WmiObject Win32_BIOS).SerialNumber
+
+} catch {
+    $ErrorState = $true
+    $ErrorMessage += "Wmi seems to be corrupted"
+    write-log -data "Wmi Corrupted"
+}
+
+
+if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') -and (-not $ErrorState)) {
+        
     write-log -data "SentinelCTL found. S1 seems to be installed."
 
     # Get SetninelOne Status
@@ -92,7 +104,7 @@ else {
         catch {
             write-log -data  "Download_failed"
             $ErrorState = $true
-            $ErrorMessage = "$(get-date -Format G)`n S1 Download failed`nIssue:$($_.exception.message)"
+            $ErrorMessage += "$(get-date -Format G)`n S1 Download failed`nIssue:$($_.exception.message)"
         }
     }
 
@@ -109,7 +121,7 @@ else {
         Catch {
             write-log -data "Install_Failed_$($_.exception.message)"
             $ErrorState = $true
-            $ErrorMessage = "$(get-date -Format G)`nInstall failed`nReason: $($_.exception.message)"
+            $ErrorMessage += "$(get-date -Format G)`nInstall failed`nReason: $($_.exception.message)"
         }
 
     }
@@ -118,13 +130,14 @@ else {
     If ($InstallExitCode -notmatch "\b0\b|\b12\b") {
 
         $ErrorState = $true
-        $ErrorMessage = "$(get-date -Format G)`nInstaller exit code indicates installation not 100% success.`nExit Code:$($installProcess.ExitCode)`nSee link for S1 exit codes values - usea1-pax8-03.sentinelone.net/docs/en/installing-windows-agent-22-1--with-the-new-installation-package.html"
+        $ErrorMessage += "$(get-date -Format G)`nInstaller exit code indicates installation not 100% success.`nExit Code:$($installProcess.ExitCode)`nSee link for S1 exit codes values - usea1-pax8-03.sentinelone.net/docs/en/installing-windows-agent-22-1--with-the-new-installation-package.html"
         write-log -data "Installer exit code indicates installation not 100% success.`nExit Code:$($installProcess.ExitCode)`nSee link for S1 exit codes values - usea1-pax8-03.sentinelone.net/docs/en/installing-windows-agent-22-1--with-the-new-installation-package.html"
 
     }
-   
+
 
 }
+
 
 write-log -data "ErrorState: $ErrorState"
 

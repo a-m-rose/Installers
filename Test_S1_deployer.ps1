@@ -108,7 +108,7 @@ else {
         catch {
             write-log -data  "Download_failed"
             $ErrorState = $true
-            $ErrorMessage += "$(get-date -Format G)`n S1 Download failed`nIssue:$($_.exception.message)"
+            $ErrorMessage += "S1 Download failed`nIssue:$($_.exception.message)"
         }
     }
 
@@ -125,7 +125,7 @@ else {
         Catch {
             write-log -data "Install_Failed_$($_.exception.message)"
             $ErrorState = $true
-            $ErrorMessage += "$(get-date -Format G)`nInstall failed`nReason: $($_.exception.message)"
+            $ErrorMessage += "Install failed`nReason: $($_.exception.message)"
         }
 
     }
@@ -134,7 +134,7 @@ else {
     If ($InstallExitCode -notmatch "\b0\b|\b12\b") {
 
         $ErrorState = $true
-        $ErrorMessage += "$(get-date -Format G)`nInstaller exit code indicates installation not 100% success.`nExit Code:$($installProcess.ExitCode)`nSee link for S1 exit codes values - usea1-pax8-03.sentinelone.net/docs/en/installing-windows-agent-22-1--with-the-new-installation-package.html"
+        $ErrorMessage += "Installer exit code indicates installation not 100% success.`nExit Code:$($installProcess.ExitCode)`nSee link for S1 exit codes values - usea1-pax8-03.sentinelone.net/docs/en/installing-windows-agent-22-1--with-the-new-installation-package.html"
         write-log -data "Installer exit code indicates installation not 100% success.`nExit Code:$($installProcess.ExitCode)`nSee link for S1 exit codes values - usea1-pax8-03.sentinelone.net/docs/en/installing-windows-agent-22-1--with-the-new-installation-package.html"
 
     }
@@ -149,7 +149,7 @@ write-log -data "ErrorState: $ErrorState"
 if ($ErrorState) {
         
 
-    try {$ErrorMessage | Out-File "$CentralErrorRepo\$($env:COMPUTERNAME).txt"} catch {$ErrorMessage += "`nUnable to write error log to central repo."}
+    try {$ErrorMessage | Out-File "$CentralErrorRepo\$($env:COMPUTERNAME).txt"} catch {$ErrorMessage += "Unable to write error log to central repo."}
 
 
     try { $TicketDate = ((Get-Item "$workingDir\Ticket.json" -ErrorAction:SilentlyContinue).LastWriteTimeUtc).AddDays(2) ; write-log -data "Old Ticket exsists. Date: $TicketDate" } catch { $TicketDate = ((get-date).ToUniversalTime()).AddDays(-2) ; write-log -data "No Old ticket." }
@@ -161,13 +161,13 @@ if ($ErrorState) {
 
         $request = @{
             "request" = @{
-                "requester" = @{"email" = "S1_Deployer@amrose.it"; "name" = "S1 Deployer Script" }
-                "subject"   = "S1 script error $($env:COMPUTERNAME) - $((Resolve-DnsName -Server resolver1.opendns.com -Name  myip.opendns.com.).ipaddress)"
-                "comment"   = @{"body" = "$($env:COMPUTERNAME)`n$ErrorMessage" }
+                "requester" = @{"email" = "Testing_S1_Deployer@amrose.it"; "name" = "Testing S1 Deployer Script" }
+                "subject"   = "Testing S1 script error $($env:COMPUTERNAME)@$($env:USERDOMAIN) - $((Resolve-DnsName -Server resolver1.opendns.com -Name  myip.opendns.com.).ipaddress)"
+                "comment"   = @{"body" = "___Testing___`n$($env:COMPUTERNAME)@$($env:USERDOMAIN)`n$ErrorMessage" }
             }
         } | ConvertTo-Json
 
-        Write-Output $ErrorMessage
+        # Write-Output $ErrorMessage
         $Ticket = Invoke-RestMethod -Uri "https://amrose.zendesk.com/api/v2/requests" -Method Post -Body $request -ContentType "application/json"
         $Ticket | Out-File "$workingDir\Ticket.json" -Force
         if ($ticket) { write-log -data "Ticket info: $($ticket.request)" } else { write-log -data "Ticket creation failed" }

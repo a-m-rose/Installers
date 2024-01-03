@@ -9,7 +9,7 @@ param (
 )
 
 #if ($MyInvocation.MyCommand -notmatch "/.ps1") {
-    If (-not (Test-Path $workingDir)) {
+    If (-not (Test-Path "$workingDir\S1_deployer.ps1")) {
         [void](New-Item -ItemType Directory -Path $workingDir)
         Invoke-RestMethod -Uri "https://raw.githubusercontent.com/a-m-rose/Installers/master/S1_deployer.ps1" -OutFile $workingDir\S1_deployer.ps1
     }

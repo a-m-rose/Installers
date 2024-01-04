@@ -8,13 +8,6 @@ param (
     $centralReportRepo
 )
 
-#if ($MyInvocation.MyCommand -notmatch "/.ps1") {
-    If (-not (Test-Path "$workingDir\S1_deployer.ps1")) {
-        [void](New-Item -ItemType Directory -Path $workingDir)
-        Invoke-RestMethod -Uri "https://raw.githubusercontent.com/a-m-rose/Installers/master/S1_deployer.ps1" -OutFile $workingDir\S1_deployer.ps1
-    }
-    
-#}
 
 $ProgressPreference = "SilentlyContinue"
 $ErrorState = $false
@@ -33,6 +26,15 @@ function Write-log {
 
 write-log -data "Script running"
 write-log -data $PSScriptRoot
+
+#if ($MyInvocation.MyCommand -notmatch "/.ps1") {
+    If (-not (Test-Path "$workingDir\S1_deployer.ps1")) {
+        [void](New-Item -ItemType Directory -Path $workingDir)
+        Invoke-RestMethod -Uri "https://raw.githubusercontent.com/a-m-rose/Installers/master/S1_deployer.ps1" -OutFile $workingDir\S1_deployer.ps1
+        Write-log -data "Script ran without being cached locally. Downloaded to local cache."
+    }
+    
+#}
 
 
 try {
@@ -55,9 +57,9 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
 
     $SentinelStatus = [pscustomobject]@{
 
-        "SentinelState" = [bool]($SentinelStatusOutput | ? { $_ -match "Disable State: Not disabled" })
-        "MonitorState"  = [bool]($SentinelStatusOutput | ? { $_ -match "SentinelMonitor is loaded" })
-        "AgentState"    = [bool]($SentinelStatusOutput | ? { $_ -match "SentinelAgent is running" })
+        "SentinelState" = [bool]($SentinelStatusOutput | where-object { $_ -match "Disable State: Not disabled" })
+        "MonitorState"  = [bool]($SentinelStatusOutput | where-object { $_ -match "SentinelMonitor is loaded" })
+        "AgentState"    = [bool]($SentinelStatusOutput | where-object { $_ -match "SentinelAgent is running" })
     }
 
     write-log -data "SentinelCTL status output: $($SentinelStatusOutput)"
@@ -69,9 +71,9 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
 
         write-log -data "S1 seems to be running fine."
         Get-Childitem 'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall' |
-        % { Get-ItemProperty "Microsoft.PowerShell.Core\Registry::$_" } |
-        ? { $_.displayname -eq 'Symantec Endpoint Protection' } |
-        % {
+        ForEach-Object { Get-ItemProperty "Microsoft.PowerShell.Core\Registry::$_" } |
+        Where-Object { $_.displayname -eq 'Symantec Endpoint Protection' } |
+        ForEach-Object {
         
             & msiexec.exe /x $($_.uninstallstring -replace 'MsiExec.exe /i', '') /qn
             write-log -data "SEP installed found on this machine. Triggering uninstallation."

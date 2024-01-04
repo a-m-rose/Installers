@@ -1,6 +1,6 @@
 param (
     $workingDir = "$($env:localappdata)\S1_Deployment",
-    $logPath = "$($workingDir)\S1_Script_log.txt",
+    $logPath = "$workingDir\S1_Script_log.txt",
     $InstallerName = "S1.exe",
     $InstallSource,
     $InstallToken,
@@ -11,7 +11,7 @@ param (
 #if ($MyInvocation.MyCommand -notmatch "/.ps1") {
     If (-not (Test-Path "$workingDir\S1_deployer.ps1")) {
         [void](New-Item -ItemType Directory -Path $workingDir)
-        Invoke-RestMethod -Uri "https://raw.githubusercontent.com/a-m-rose/Installers/master/S1_deployer.ps1" -OutFile $workingDir\S1_deployer.ps1
+        # Invoke-RestMethod -Uri "https://raw.githubusercontent.com/a-m-rose/Installers/master/S1_deployer.ps1" -OutFile $workingDir\S1_deployer.ps1
     }
     
 #}
@@ -80,28 +80,26 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
     } else {
         
         $ErrorState = $true
-        $ErrorMessage += "`nS1 is installed but not running on this computer"
-        $Errormessage += "`n$($SentinelStatusOutput)"
-        $Errormessage += "`n$($SentinelStatus)"
+        $ErrorMessage += "S1 is installed but not running on this computer"
+        $Errormessage += "$($SentinelStatusOutput)"
+        $Errormessage += "$($SentinelStatus)"
         write-log -data "S1 is installed but NOT in perfect running condition"
 
     }
 
-}
-else {
+} else {
 
     if (-not $InstallSource) {
         write-log -data "No install source provided. Falling back to Internet Source"
-        $InstallSource = "$workingDir\$InstallerName"
+        $InstallSource = $workingDir
     }
-    if (Test-Path $InstallSource) {
+    if (Test-Path "$InstallSource\$InstallerName") {
         write-log -data "S1_Installer_Accessible. No need to redownload."
-    }
-    else {
+    } else {
 
-        write-log -data "Installer not accessible at $InstallSource. Falling back to internet source."
+        write-log -data "Installer not accessible at $InstallSource\$InstallerName. Falling back to internet source."
         # If install source path not accessible fall back to internet source. 
-        $InstallSource = "$workingDir\$InstallerName"
+        $InstallSource = $workingDir
         write-log -data "S1_Being_Downloaded"
         try {
             Invoke-RestMethod -Method get -uri "https://s3.us-east-1.wasabisys.com/amrose/$InstallerName" -OutFile $InstallSource
@@ -109,7 +107,7 @@ else {
         catch {
             write-log -data  "Download_failed"
             $ErrorState = $true
-            $ErrorMessage += "$(get-date -Format G)`n S1 Download failed`nIssue:$($_.exception.message)"
+            $ErrorMessage += "S1 Download failed`nIssue:$($_.exception.message)"
         }
     }
 
@@ -118,15 +116,15 @@ else {
 
         # Install Process
         Try {
-            write-log -data "S1_Install_Started_Source_$installsource"
-            $installProcess = Start-Process -NoNewWindow -PassThru -Wait -FilePath $InstallSource -ArgumentList "-q -t $($InstallToken)"
+            write-log -data "S1_Install_Started_Source_$installsource\$installername"
+            $installProcess = Start-Process -NoNewWindow -PassThru -Wait -FilePath "$InstallSource\$InstallerName" -ArgumentList "-q -t $($InstallToken)"
             $InstallExitCode = $installProcess.ExitCode
             write-log -data "Install_ExitCode_$InstallExitCode"
         }
         Catch {
             write-log -data "Install_Failed_$($_.exception.message)"
             $ErrorState = $true
-            $ErrorMessage += "$(get-date -Format G)`nInstall failed`nReason: $($_.exception.message)"
+            $ErrorMessage += "Install failed`nReason: $($_.exception.message)"
         }
 
     }
@@ -135,7 +133,7 @@ else {
     If ($InstallExitCode -notmatch "\b0\b|\b12\b") {
 
         $ErrorState = $true
-        $ErrorMessage += "$(get-date -Format G)`nInstaller exit code indicates installation not 100% success.`nExit Code:$($installProcess.ExitCode)`nSee link for S1 exit codes values - usea1-pax8-03.sentinelone.net/docs/en/installing-windows-agent-22-1--with-the-new-installation-package.html"
+        $ErrorMessage += "Installer exit code indicates installation not 100% success.`nExit Code:$($installProcess.ExitCode)`nSee link for S1 exit codes values - usea1-pax8-03.sentinelone.net/docs/en/installing-windows-agent-22-1--with-the-new-installation-package.html"
         write-log -data "Installer exit code indicates installation not 100% success.`nExit Code:$($installProcess.ExitCode)`nSee link for S1 exit codes values - usea1-pax8-03.sentinelone.net/docs/en/installing-windows-agent-22-1--with-the-new-installation-package.html"
 
     }
@@ -150,7 +148,7 @@ write-log -data "ErrorState: $ErrorState"
 if ($ErrorState) {
         
 
-    try {$ErrorMessage | Out-File "$CentralErrorRepo\$($env:COMPUTERNAME).txt"} catch {$ErrorMessage += "`nUnable to write error log to central repo."}
+    try {$ErrorMessage | Out-File "$CentralErrorRepo\$($env:COMPUTERNAME).txt"} catch {$ErrorMessage += "Unable to write error log to central repo."}
 
 
     try { $TicketDate = ((Get-Item "$workingDir\Ticket.json" -ErrorAction:SilentlyContinue).LastWriteTimeUtc).AddDays(2) ; write-log -data "Old Ticket exsists. Date: $TicketDate" } catch { $TicketDate = ((get-date).ToUniversalTime()).AddDays(-2) ; write-log -data "No Old ticket." }

@@ -99,6 +99,7 @@ else {
     }
     else {
 
+        write-log -data "Installer not accessible at $InstallSource. Falling back to internet source."
         # If install source path not accessible fall back to internet source. 
         $InstallSource = "$workingDir\$InstallerName"
         write-log -data "S1_Being_Downloaded"

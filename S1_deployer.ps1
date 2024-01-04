@@ -105,9 +105,18 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
             Invoke-RestMethod -Method get -uri "https://s3.us-east-1.wasabisys.com/amrose/$InstallerName" -OutFile $InstallSource
         }
         catch {
-            write-log -data  "Download_failed"
-            $ErrorState = $true
-            $ErrorMessage += "S1 Download failed`nIssue:$($_.exception.message)"
+
+            $originalerror = $_.exception.message
+            try {
+                Invoke-RestMethod -Method get -uri "https://s3.us-east-1.wasabisys.com/amrose/s1.exe" -OutFile $InstallSource
+            } catch {
+
+                write-log -data  "Download_failed"
+                $ErrorState = $true
+                $ErrorMessage += "S1 Download failed`nIssue:$originalerror"
+
+            }
+
         }
     }
 

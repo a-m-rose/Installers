@@ -137,13 +137,13 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
         }
 
     }
-    #Exit codes - https://usea1-pax8-03.sentinelone.net/docs/en/installing-windows-agent-22-1--with-the-new-installation-package.html
+    #Exit codes - https://usea1-pax8-03.sentinelone.net/docs/en/return-codes-after-installing-or-updating-windows-agents.html
 
     If ($InstallExitCode -notmatch "\b0\b|\b12\b") {
 
         $ErrorState = $true
-        $ErrorMessage += "Installer exit code indicates installation not 100% success.`nExit Code:$($installProcess.ExitCode)`nSee link for S1 exit codes values - usea1-pax8-03.sentinelone.net/docs/en/installing-windows-agent-22-1--with-the-new-installation-package.html"
-        write-log -data "Installer exit code indicates installation not 100% success.`nExit Code:$($installProcess.ExitCode)`nSee link for S1 exit codes values - usea1-pax8-03.sentinelone.net/docs/en/installing-windows-agent-22-1--with-the-new-installation-package.html"
+        $ErrorMessage += "Installer exit code indicates installation not 100% success.`nExit Code:$($installProcess.ExitCode)`nSee link for S1 exit codes values - https://usea1-pax8-03.sentinelone.net/docs/en/return-codes-after-installing-or-updating-windows-agents.html"
+        write-log -data "Installer exit code indicates installation not 100% success.`nExit Code:$($installProcess.ExitCode)`nSee link for S1 exit codes values - https://usea1-pax8-03.sentinelone.net/docs/en/return-codes-after-installing-or-updating-windows-agents.html"
 
     }
 

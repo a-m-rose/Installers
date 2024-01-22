@@ -27,7 +27,9 @@ function Write-log {
         $path = $logPath
     )
     "$(get-date -Format G),$($data)" | Out-File $logPath -Encoding ascii -Append
-    if ($centralReportRepo) {"$(get-date -Format G),$($data)" | Out-File "$centralReportRepo\$($env:COMPUTERNAME).txt" -Encoding ascii -Append -ErrorAction:SilentlyContinue}
+    if (Test-Path $centralReportRepo) {
+        if ($centralReportRepo) {"$(get-date -Format G),$($data)" | Out-File "$centralReportRepo\$($env:COMPUTERNAME).txt" -Encoding ascii -Append}
+    }
 
 }
 
@@ -160,10 +162,10 @@ if ($ErrorState) {
     try {$ErrorMessage | Out-File "$CentralErrorRepo\$($env:COMPUTERNAME).txt"} catch {$ErrorMessage += "Unable to write error log to central repo."}
 
 
-    try { $TicketDate = ((Get-Item "$workingDir\Ticket.json" -ErrorAction:SilentlyContinue).LastWriteTimeUtc).AddDays(2) ; write-log -data "Old Ticket exsists. Date: $TicketDate" } catch { $TicketDate = ((get-date).ToUniversalTime()).AddDays(-2) ; write-log -data "No Old ticket." }
+    try { $TicketDate = (Get-Item "$workingDir\Ticket.json" -ErrorAction:Stop).LastWriteTimeUtc ; write-log -data "Old Ticket exists. Date: $TicketDate" } catch { $TicketDate = (get-date).ToUniversalTime() ; write-log -data "No Old ticket." }
         
     # Don't open a new ticket if previous ticket is less than a day.
-    if ($TicketDate -le (Get-Date).ToUniversalTime()) {
+    if ($TicketDate -le ((Get-Date).ToUniversalTime()).AddDays(2)) {
             
         write-log -data "Opening Ticket"
 

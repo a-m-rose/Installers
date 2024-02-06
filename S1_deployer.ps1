@@ -165,7 +165,7 @@ if ($ErrorState) {
     try { $TicketDate = (Get-Item "$workingDir\Ticket.json" -ErrorAction:Stop).LastWriteTimeUtc ; write-log -data "Old Ticket exists. Date: $TicketDate" } catch { $TicketDate = (get-date).ToUniversalTime() ; write-log -data "No Old ticket." }
         
     # Don't open a new ticket if previous ticket is less than a day.
-    if ($TicketDate -le ((Get-Date).ToUniversalTime()).AddDays(2)) {
+    if ($TicketDate -ge ((Get-Date).ToUniversalTime()).AddDays(2)) {
             
         write-log -data "Opening Ticket"
 

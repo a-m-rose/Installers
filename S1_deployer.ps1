@@ -179,7 +179,7 @@ if ($ErrorState) {
 
         Write-Output $ErrorMessage
         $Ticket = Invoke-RestMethod -Uri "https://amrose.zendesk.com/api/v2/requests" -Method Post -Body $request -ContentType "application/json"
-        $Ticket | Out-File "$workingDir\Ticket.json" -Force
+        $Ticket.request | Out-File "$workingDir\Ticket.json" -Force
         if ($ticket) { write-log -data "Ticket info: $($ticket.request)" } else { write-log -data "Ticket creation failed" }
         
     }

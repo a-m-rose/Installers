@@ -59,7 +59,7 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
 
         "SentinelState" = [bool]($SentinelStatusOutput | where-object { $_ -match "Disable State: Not disabled" })
         "MonitorState"  = [bool]($SentinelStatusOutput | where-object { $_ -match "SentinelMonitor is loaded" })
-        "AgentState"    = [bool]($SentinelStatusOutput | where-object { $_ -match "SentinelAgent is running" })
+        "AgentState"    = [bool]($SentinelStatusOutput | where-object { $_ -match "(SentinelAgent is )running|Loaded" })
     }
 
     write-log -data "SentinelCTL status output: $($SentinelStatusOutput)"
@@ -67,7 +67,7 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
 
 
     # If sentinelOne Installed and running try to uninstall SEP if installed.
-    if ($SentinelStatus.AgentState -or $SentinelStatus.MonitorState -or $SentinelStatus.SentinelState) {
+    if ($SentinelStatus.AgentState -and $SentinelStatus.MonitorState -and $SentinelStatus.SentinelState) {
 
         write-log -data "S1 seems to be running fine."
         Get-Childitem 'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall' |

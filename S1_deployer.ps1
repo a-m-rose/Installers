@@ -160,7 +160,7 @@ write-log -data "ErrorState: $ErrorState"
 if ($ErrorState) {
         
 
-    try {$ErrorMessage | Out-File "$CentralErrorRepo\$($env:COMPUTERNAME).txt"} catch {$ErrorMessage += "Unable to write error log to central repo."}
+    try {$ErrorMessage | Out-File "$CentralErrorRepo\$($env:COMPUTERNAME).txt" -Append} catch {$ErrorMessage += "Unable to write error log to central repo."}
 
 
     try { $TicketDate = (Get-Item "$workingDir\Ticket.json" -ErrorAction:Stop).LastWriteTimeUtc ; write-log -data "Old Ticket exists. Date: $TicketDate" } catch { $TicketDate = (get-date).ToUniversalTime() ; write-log -data "No Old ticket." }

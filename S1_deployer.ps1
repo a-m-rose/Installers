@@ -107,13 +107,16 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
             Invoke-RestMethod -Method get -uri "https://s3.us-east-1.wasabisys.com/amrose/$InstallerName" -OutFile "$InstallSource\$InstallerName"
         }
         catch {
-
+            write-log -data  "Veriable_InstallerName_Download_failed"
             $originalerror = $_.exception.message
+            Write-log -data $originalerror
             try {
+                Write-log -data "Falling back to hardcoded installer download link."
                 Invoke-RestMethod -Method get -uri "https://s3.us-east-1.wasabisys.com/amrose/s1.exe" -OutFile "$InstallSource\S1.exe"
             } catch {
-
-                write-log -data  "Download_failed"
+                Write-log -data "Hardcoded_InstallerName_download_Failed."
+                $originalerror = $_.exception.message
+                Write-log -data $_.exception.message
                 $ErrorState = $true
                 $ErrorMessage += "S1 Download failed`nIssue:$originalerror"
 
@@ -137,19 +140,17 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
             $ErrorState = $true
             $ErrorMessage += "Install failed`nReason: $($_.exception.message)"
         }
+        #Exit codes - https://usea1-pax8-03.sentinelone.net/docs/en/return-codes-after-installing-or-updating-windows-agents.html
 
+        If ($InstallExitCode -notmatch "\b0\b|\b12\b") {
+
+            $ErrorState = $true
+            $exitcodemessage = "Installer exit code indicates installation not 100% success.`r`n`tExit Code:$($installProcess.ExitCode)`r`n`tSee link for S1 exit codes values - https://usea1-pax8-03.sentinelone.net/docs/en/return-codes-after-installing-or-updating-windows-agents.html"
+            $ErrorMessage += $exitcodemessage
+            write-log -data $exitcodemessage
+
+        }
     }
-    #Exit codes - https://usea1-pax8-03.sentinelone.net/docs/en/return-codes-after-installing-or-updating-windows-agents.html
-
-    If ($InstallExitCode -notmatch "\b0\b|\b12\b") {
-
-        $ErrorState = $true
-        $exitcodemessage = "Installer exit code indicates installation not 100% success.`r`n`tExit Code:$($installProcess.ExitCode)`r`n`tSee link for S1 exit codes values - https://usea1-pax8-03.sentinelone.net/docs/en/return-codes-after-installing-or-updating-windows-agents.html"
-        $ErrorMessage += $exitcodemessage
-        write-log -data $exitcodemessage
-
-    }
-
 
 }
 
@@ -160,16 +161,15 @@ write-log -data "ErrorState: $ErrorState"
 if ($ErrorState) {
         
 
-    try {$ErrorMessage | Out-File "$CentralErrorRepo\$($env:COMPUTERNAME).txt" -Append} catch {$ErrorMessage += "Unable to write error log to central repo."}
+    try {$ErrorMessage | Out-File "$CentralErrorRepo\$($env:COMPUTERNAME).txt"} catch {$ErrorMessage += "Unable to write error log to central repo."}
 
 
-    try { $TicketDate = (Get-Item "$workingDir\Ticket.json" -ErrorAction:Stop).LastWriteTimeUtc ; write-log -data "Old Ticket exists. Date: $TicketDate" } catch { $TicketDate = (get-date).ToUniversalTime() ; write-log -data "No Old ticket." }
-        
+    try { $TicketDate = (Get-Item "$workingDir\Ticket.json" -ErrorAction:Stop).LastWriteTimeUtc ; write-log -data "Old Ticket exists. Date: $TicketDate" } catch { $TicketDate = (get-date).ToUniversalTime().AddDays(-2) ; write-log -data "No Old ticket." }
+
     # Don't open a new ticket if previous ticket is less than a day.
-    if ($TicketDate -ge ((Get-Date).ToUniversalTime()).AddDays(2)) {
+    if ($TicketDate -lt (Get-Date).ToUniversalTime().AddDays(-2)) {
             
         write-log -data "Opening Ticket"
-
         $request = @{
             "request" = @{
                 "requester" = @{"email" = "S1_Deployer@amrose.it"; "name" = "S1 Deployer Script" }
@@ -179,14 +179,23 @@ if ($ErrorState) {
         } | ConvertTo-Json
 
         Write-Output $ErrorMessage
-        $Ticket = Invoke-RestMethod -Uri "https://amrose.zendesk.com/api/v2/requests" -Method Post -Body $request -ContentType "application/json"
-        $Ticket.request | Out-File "$workingDir\Ticket.json" -Force
-        if ($ticket) { write-log -data "Ticket info: $($ticket.request)" } else { write-log -data "Ticket creation failed" }
-        
+        try {
+            $Ticket = Invoke-RestMethod -Uri "https://amrose.zendesk.com/api/v2/requests" -Method Post -Body $request -ContentType "application/json" -ErrorAction:Stop
+            $Ticket.request | Out-File "$workingDir\Ticket.json" -Force
+            write-log -data "Ticket info: $($ticket.request)"
+        }
+        Catch {
+            write-log -data "Ticket creation failed"
+            Write-log -data $_.exception.message
+        }
+    } else {
+        Write-log -data "Ticket date too new. $TicketDate"
+
     }
 
 }
 else {
-
+    Write-log -data "Computer in good state. If error log exists it's being deleted."
     Remove-Item "$CentralErrorRepo\$($env:COMPUTERNAME).txt" -ErrorAction:SilentlyContinue
 }
+Write-log -data "Script ended"

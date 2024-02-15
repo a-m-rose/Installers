@@ -19,16 +19,45 @@ param (
 $ProgressPreference = "SilentlyContinue"
 $ErrorState = $false
 
+# Cleaning up in case of mistakes.
+if ($workingDir) {$workingDir = $workingDir.Trim("\")}
+if ($InstallSource) {$InstallSource = $InstallSource.Trim("\")}
+if ($CentralErrorRepo) {$CentralErrorRepo = $CentralErrorRepo.trim("\")}
+if ($centralReportRepo) {$centralReportRepo = $centralReportRepo.trim("\")}
+if ($InstallSource.Substring($InstallSource.Length -4) -match "\.exe") {$InstallerName = Split-Path $InstallSource -Leaf; $Installsource = Split-Path $InstallSource}   
+
 
 
 function Write-log {
     Param(
         $data,
-        $path = $logPath
+        $path = $logPath,
+        [switch]$Errors
     )
-    "$(get-date -Format G),$($data)" | Out-File $logPath -Encoding ascii -Append
-    if (Test-Path $centralReportRepo) {
-        if ($centralReportRepo) {"$(get-date -Format G),$($data)" | Out-File "$centralReportRepo\$($env:COMPUTERNAME).txt" -Encoding ascii -Append}
+    $LogData = "$(get-date -Format G),$LogType,$($data)"
+    
+    $LogData | Out-File $logPath -Encoding ascii -Append
+    
+    if ($centralReportRepo) {
+        if (Test-Path $centralReportRepo) {
+            $LogData | Out-File "$centralReportRepo\$($env:COMPUTERNAME).txt" -Encoding ascii -Append
+        } else {
+            Write-log -logtype "Error" -data "Central Log Folder not accessible. Recieved path is $($centralReportRepo)"
+        }
+    } 
+
+    if ($errors) {
+
+        $ErrorMessage += "`r`n$($data)"
+
+    }
+    # Send Error logs also to a seperate error log folder.
+    if (($Errors) -and $CentralErrorRepo) {
+        if (Test-Path $CentralErrorRepo) {
+            $LogData | Out-File "$CentralErrorRepo\$($env:COMPUTERNAME).txt" -Encoding ascii -Append
+        } else {
+            Write-log -logtype "Error" -data "Central ErrorLog Folder not accessible. Recieved path is $($CentralErrorRepo)"
+        }
     }
 
 }
@@ -43,8 +72,7 @@ try {
 
 } catch {
     $ErrorState = $true
-    $ErrorMessage += "Wmi seems to be corrupted"
-    write-log -data "Wmi Corrupted"
+    Write-log -errors -data "Wmi seems to be corrupted"
 }
 
 
@@ -82,17 +110,16 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
     } else {
         
         $ErrorState = $true
-        $ErrorMessage += "S1 is installed but not running on this computer"
-        $Errormessage += "$($SentinelStatusOutput)"
-        $Errormessage += "$($SentinelStatus)"
-        write-log -data "S1 is installed but NOT in perfect running condition"
+        Write-log -errors -data "S1 is installed but not running on this computer"
+        Write-log -errors -data "$($SentinelStatusOutput)"
+        Write-log -errors -data "$($SentinelStatus)"
 
     }
 
 } else {
 
     if (-not $InstallSource) {
-        write-log -data "No install source provided. Falling back to Internet Source"
+        write-log -data "No install source provided. Falling back to Internet Source."
         $InstallSource = $workingDir
     }
     if (Test-Path "$InstallSource\$InstallerName") {
@@ -107,19 +134,17 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
             Invoke-RestMethod -Method get -uri "https://s3.us-east-1.wasabisys.com/amrose/$InstallerName" -OutFile "$InstallSource\$InstallerName"
         }
         catch {
-            write-log -data  "Veriable_InstallerName_Download_failed"
+            write-log -Errors -data "Veriable_InstallerName_Download_failed"
             $originalerror = $_.exception.message
-            Write-log -data $originalerror
+            Write-log -Errors -data $originalerror
             try {
                 Write-log -data "Falling back to hardcoded installer download link."
                 Invoke-RestMethod -Method get -uri "https://s3.us-east-1.wasabisys.com/amrose/s1.exe" -OutFile "$InstallSource\S1.exe"
             } catch {
-                Write-log -data "Hardcoded_InstallerName_download_Failed."
+                Write-log -Errors -data "Hardcoded_InstallerName_download_Failed."
                 $originalerror = $_.exception.message
-                Write-log -data $_.exception.message
+                Write-log -Errors -data $_.exception.message
                 $ErrorState = $true
-                $ErrorMessage += "S1 Download failed`nIssue:$originalerror"
-
             }
 
         }
@@ -136,35 +161,37 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
             write-log -data "Install_ExitCode_$InstallExitCode"
         }
         Catch {
-            write-log -data "Install_Failed_$($_.exception.message)"
+            write-log -errors -data "Install_Failed_$($_.exception.message)"
             $ErrorState = $true
-            $ErrorMessage += "Install failed`nReason: $($_.exception.message)"
         }
         #Exit codes - https://usea1-pax8-03.sentinelone.net/docs/en/return-codes-after-installing-or-updating-windows-agents.html
 
         If ($InstallExitCode -notmatch "\b0\b|\b12\b") {
 
             $ErrorState = $true
-            $exitcodemessage = "Installer exit code indicates installation not 100% success.`r`n`tExit Code:$($installProcess.ExitCode)`r`n`tSee link for S1 exit codes values - https://usea1-pax8-03.sentinelone.net/docs/en/return-codes-after-installing-or-updating-windows-agents.html"
-            $ErrorMessage += $exitcodemessage
-            write-log -data $exitcodemessage
+            $exitcodemessage = "Installer exit code indicates installation not 100% success.
+                                Exit Code:$($installProcess.ExitCode)
+                                See link for S1 exit codes values - https://usea1-pax8-03.sentinelone.net/docs/en/return-codes-after-installing-or-updating-windows-agents.html"
+            write-log -Errors -data $exitcodemessage
 
         }
     }
 
 }
 
-
 write-log -data "ErrorState: $ErrorState"
 
 # Open ticket if last ticket is 2 days old.
 if ($ErrorState) {
         
-
-    try {$ErrorMessage | Out-File "$CentralErrorRepo\$($env:COMPUTERNAME).txt"} catch {$ErrorMessage += "Unable to write error log to central repo."}
-
-
-    try { $TicketDate = (Get-Item "$workingDir\Ticket.json" -ErrorAction:Stop).LastWriteTimeUtc ; write-log -data "Old Ticket exists. Date: $TicketDate" } catch { $TicketDate = (get-date).ToUniversalTime().AddDays(-2) ; write-log -data "No Old ticket." }
+    try {
+        $TicketDate = (Get-Item "$workingDir\Ticket.json" -ErrorAction:Stop).LastWriteTimeUtc
+        write-log -data "Old Ticket exists. Date: $TicketDate"
+    }
+    catch {
+        $TicketDate = (get-date).ToUniversalTime().AddDays(-2)
+        write-log -data "No Old ticket."
+    }
 
     # Don't open a new ticket if previous ticket is less than a day.
     if ($TicketDate -lt (Get-Date).ToUniversalTime().AddDays(-2)) {
@@ -177,8 +204,6 @@ if ($ErrorState) {
                 "comment"   = @{"body" = "$($env:COMPUTERNAME)@$($env:USERDOMAIN)`n$ErrorMessage" }
             }
         } | ConvertTo-Json
-
-        Write-Output $ErrorMessage
         try {
             $Ticket = Invoke-RestMethod -Uri "https://amrose.zendesk.com/api/v2/requests" -Method Post -Body $request -ContentType "application/json" -ErrorAction:Stop
             $Ticket.request | Out-File "$workingDir\Ticket.json" -Force

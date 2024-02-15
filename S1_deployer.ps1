@@ -48,10 +48,12 @@ function Write-log {
         if (Test-Path $centralReportRepo) {
             $LogData | Out-File "$centralReportRepo\$($env:COMPUTERNAME).txt" -Encoding ascii -Append
         } else {
-            Write-log -Errors -data "Central Log Folder not accessible. Recieved path is $($centralReportRepo)"
-            $global:NocentralReportRepo = $true
+            $global:NocentralReportRepo = $true    
         }
     } 
+    if ($NocentralReportRepo) {
+        Write-log -Errors -data "Central Log Folder not accessible. Recieved path is $($centralReportRepo)"
+    }
 
     if ($errors) {
 
@@ -63,10 +65,12 @@ function Write-log {
         if (Test-Path $CentralErrorRepo) {
             $LogData | Out-File "$CentralErrorRepo\$($env:COMPUTERNAME).txt" -Encoding ascii -Append
         } else {
-            Write-log -data "Central ErrorLog Folder not accessible. Recieved path is $($CentralErrorRepo)"
             $global:NoCentralErrorRepo = $true
         }
     }
+    if ($NoCentralErrorRepo) {
+        Write-log -data "Central ErrorLog Folder not accessible. Recieved path is $($CentralErrorRepo)"
+    } 
 
 }
 

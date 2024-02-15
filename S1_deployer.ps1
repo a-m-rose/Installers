@@ -20,10 +20,10 @@ $ProgressPreference = "SilentlyContinue"
 $ErrorState = $false
 
 # Cleaning up in case of mistakes.
-if ($workingDir) {$workingDir = $workingDir.Trim("\")}
-if ($InstallSource) {$InstallSource = $InstallSource.Trim("\")}
-if ($CentralErrorRepo) {$CentralErrorRepo = $CentralErrorRepo.trim("\")}
-if ($centralReportRepo) {$centralReportRepo = $centralReportRepo.trim("\")}
+if ($workingDir) {$workingDir = $workingDir.trimend("\")}
+if ($InstallSource) {$InstallSource = $InstallSource.trimend("\")}
+if ($CentralErrorRepo) {$CentralErrorRepo = $CentralErrorRepo.trimend("\")}
+if ($centralReportRepo) {$centralReportRepo = $centralReportRepo.trimend("\")}
 if ($InstallSource.Substring($InstallSource.Length -4) -match "\.exe") {$InstallerName = Split-Path $InstallSource -Leaf; $Installsource = Split-Path $InstallSource}   
 
 function Write-log {

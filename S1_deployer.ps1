@@ -42,7 +42,7 @@ function Write-log {
         if (Test-Path $centralReportRepo) {
             $LogData | Out-File "$centralReportRepo\$($env:COMPUTERNAME).txt" -Encoding ascii -Append
         } else {
-            Write-log -logtype "Error" -data "Central Log Folder not accessible. Recieved path is $($centralReportRepo)"
+            #Write-log -logtype "Error" -data "Central Log Folder not accessible. Recieved path is $($centralReportRepo)"
         }
     } 
 

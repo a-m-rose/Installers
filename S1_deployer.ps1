@@ -52,7 +52,7 @@ function Write-log {
         }
     } 
     if ($NocentralReportRepo) {
-        Write-log -Errors -data "Central Log Folder not accessible. Recieved path is $($centralReportRepo)"
+        #Write-log -Errors -data "Central Log Folder not accessible. Recieved path is $($centralReportRepo)"
     }
 
     if ($errors) {
@@ -69,7 +69,7 @@ function Write-log {
         }
     }
     if ($NoCentralErrorRepo) {
-        Write-log -data "Central ErrorLog Folder not accessible. Recieved path is $($CentralErrorRepo)"
+        #Write-log -data "Central ErrorLog Folder not accessible. Recieved path is $($CentralErrorRepo)"
     } 
 
 }

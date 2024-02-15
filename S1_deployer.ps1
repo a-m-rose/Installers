@@ -53,7 +53,7 @@ function Write-log {
 
     if ($Errorlog) {
 
-        $ErrorMessage += "`r`n$($data)"
+        $global:ErrorMessage += "`r`n$($data)"
 
     }
     # Send Error logs also to a seperate error log folder.
@@ -62,7 +62,7 @@ function Write-log {
             $LogData | Out-File "$CentralErrorRepo\$($env:COMPUTERNAME).txt" -Encoding ascii -Append
         } else {
             $global:NoCentralErrorRepo = $true
-            Write-log -data "Central ErrorLog Folder not accessible. Recieved path is $($CentralErrorRepo)" -path $path
+            Write-log -Errorlog -data "Central ErrorLog Folder not accessible. Recieved path is $($CentralErrorRepo)" -path $path
         }
     }
 

@@ -30,10 +30,10 @@ function Write-log {
     Param(
         $data,
         $path = $logPath,
-        [switch]$Errors
+        [switch]$Errorlog
     )
 
-    if ($errors) {
+    if ($Errorlog) {
         $logtype = "Errors"
     } else {
         $logtype = "verbose"
@@ -47,17 +47,17 @@ function Write-log {
             $LogData | Out-File "$centralReportRepo\$($env:COMPUTERNAME).txt" -Encoding ascii -Append
         } else {
             $global:NocentralReportRepo = $true
-            Write-log -Errors -data "Central Log Folder not accessible. Recieved path is $($centralReportRepo)" -path $path    
+            Write-log -ErrorLog -data "Central Log Folder not accessible. Recieved path is $($centralReportRepo)" -path $path    
         }
     }
 
-    if ($errors) {
+    if ($Errorlog) {
 
         $ErrorMessage += "`r`n$($data)"
 
     }
     # Send Error logs also to a seperate error log folder.
-    if (($Errors) -and $CentralErrorRepo -and (-not $NoCentralErrorRepo)) {
+    if (($Errorlog) -and $CentralErrorRepo -and (-not $NoCentralErrorRepo)) {
         if (Test-Path $CentralErrorRepo) {
             $LogData | Out-File "$CentralErrorRepo\$($env:COMPUTERNAME).txt" -Encoding ascii -Append
         } else {
@@ -78,7 +78,7 @@ try {
 
 } catch {
     $ErrorState = $true
-    Write-log -errors -data "Wmi seems to be corrupted"
+    Write-log -ErrorLog -data "Wmi seems to be corrupted"
 }
 
 
@@ -116,9 +116,9 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
     } else {
         
         $ErrorState = $true
-        Write-log -errors -data "S1 is installed but not running on this computer"
-        Write-log -errors -data "$($SentinelStatusOutput)"
-        Write-log -errors -data "$($SentinelStatus)"
+        Write-log -ErrorLog -data "S1 is installed but not running on this computer"
+        Write-log -ErrorLog -data "$($SentinelStatusOutput)"
+        Write-log -ErrorLog -data "$($SentinelStatus)"
 
     }
 
@@ -140,16 +140,16 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
             Invoke-RestMethod -Method get -uri "https://s3.us-east-1.wasabisys.com/amrose/$InstallerName" -OutFile "$InstallSource\$InstallerName"
         }
         catch {
-            write-log -Errors -data "Veriable_InstallerName_Download_failed"
+            write-log -ErrorLog -data "Veriable_InstallerName_Download_failed"
             $originalerror = $_.exception.message
-            Write-log -Errors -data $originalerror
+            Write-log -ErrorLog -data $originalerror
             try {
                 Write-log -data "Falling back to hardcoded installer download link."
                 Invoke-RestMethod -Method get -uri "https://s3.us-east-1.wasabisys.com/amrose/s1.exe" -OutFile "$InstallSource\S1.exe"
             } catch {
-                Write-log -Errors -data "Hardcoded_InstallerName_download_Failed."
+                Write-log -ErrorLog -data "Hardcoded_InstallerName_download_Failed."
                 $originalerror = $_.exception.message
-                Write-log -Errors -data $_.exception.message
+                Write-log -ErrorLog -data $_.exception.message
                 $ErrorState = $true
             }
 
@@ -167,7 +167,7 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
             write-log -data "Install_ExitCode_$InstallExitCode"
         }
         Catch {
-            write-log -errors -data "Install_Failed_$($_.exception.message)"
+            write-log -ErrorLog -data "Install_Failed_$($_.exception.message)"
             $ErrorState = $true
         }
         #Exit codes - https://usea1-pax8-03.sentinelone.net/docs/en/return-codes-after-installing-or-updating-windows-agents.html
@@ -178,7 +178,7 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
             $exitcodemessage = "Installer exit code indicates installation not 100% success.
                                 Exit Code:$($installProcess.ExitCode)
                                 See link for S1 exit codes values - https://usea1-pax8-03.sentinelone.net/docs/en/return-codes-after-installing-or-updating-windows-agents.html"
-            write-log -Errors -data $exitcodemessage
+            write-log -ErrorLog -data $exitcodemessage
 
         }
     }

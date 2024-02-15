@@ -56,7 +56,7 @@ function Write-log {
         if (Test-Path $CentralErrorRepo) {
             $LogData | Out-File "$CentralErrorRepo\$($env:COMPUTERNAME).txt" -Encoding ascii -Append
         } else {
-            Write-log -logtype "Error" -data "Central ErrorLog Folder not accessible. Recieved path is $($CentralErrorRepo)"
+            #Write-log -logtype "Error" -data "Central ErrorLog Folder not accessible. Recieved path is $($CentralErrorRepo)"
         }
     }
 

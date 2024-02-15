@@ -34,15 +34,22 @@ function Write-log {
         $path = $logPath,
         [switch]$Errors
     )
+
+    if ($errors) {
+        $logtype = "Errors"
+    } else {
+        $logtype = "verbose"
+    }
     $LogData = "$(get-date -Format G),$LogType,$($data)"
     
     $LogData | Out-File $logPath -Encoding ascii -Append
     
-    if ($centralReportRepo) {
+    if ($centralReportRepo -and (-not $NocentralReportRepo)) {
         if (Test-Path $centralReportRepo) {
             $LogData | Out-File "$centralReportRepo\$($env:COMPUTERNAME).txt" -Encoding ascii -Append
         } else {
-            #Write-log -logtype "Error" -data "Central Log Folder not accessible. Recieved path is $($centralReportRepo)"
+            Write-log -Errors -data "Central Log Folder not accessible. Recieved path is $($centralReportRepo)"
+            $global:NocentralReportRepo = $true
         }
     } 
 
@@ -52,11 +59,12 @@ function Write-log {
 
     }
     # Send Error logs also to a seperate error log folder.
-    if (($Errors) -and $CentralErrorRepo) {
+    if (($Errors) -and $CentralErrorRepo -and (-not $NoCentralErrorRepo)) {
         if (Test-Path $CentralErrorRepo) {
             $LogData | Out-File "$CentralErrorRepo\$($env:COMPUTERNAME).txt" -Encoding ascii -Append
         } else {
-            #Write-log -logtype "Error" -data "Central ErrorLog Folder not accessible. Recieved path is $($CentralErrorRepo)"
+            Write-log -data "Central ErrorLog Folder not accessible. Recieved path is $($CentralErrorRepo)"
+            $global:NoCentralErrorRepo = $true
         }
     }
 

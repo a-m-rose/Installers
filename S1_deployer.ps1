@@ -26,8 +26,6 @@ if ($CentralErrorRepo) {$CentralErrorRepo = $CentralErrorRepo.trim("\")}
 if ($centralReportRepo) {$centralReportRepo = $centralReportRepo.trim("\")}
 if ($InstallSource.Substring($InstallSource.Length -4) -match "\.exe") {$InstallerName = Split-Path $InstallSource -Leaf; $Installsource = Split-Path $InstallSource}   
 
-
-
 function Write-log {
     Param(
         $data,
@@ -42,17 +40,15 @@ function Write-log {
     }
     $LogData = "$(get-date -Format G),$LogType,$($data)"
     
-    $LogData | Out-File $logPath -Encoding ascii -Append
+    $LogData | Out-File $path -Encoding ascii -Append
     
     if ($centralReportRepo -and (-not $NocentralReportRepo)) {
         if (Test-Path $centralReportRepo) {
             $LogData | Out-File "$centralReportRepo\$($env:COMPUTERNAME).txt" -Encoding ascii -Append
         } else {
-            $global:NocentralReportRepo = $true    
+            $global:NocentralReportRepo = $true
+            Write-log -Errors -data "Central Log Folder not accessible. Recieved path is $($centralReportRepo)" -path $path    
         }
-    } 
-    if ($NocentralReportRepo) {
-        #Write-log -Errors -data "Central Log Folder not accessible. Recieved path is $($centralReportRepo)"
     }
 
     if ($errors) {
@@ -66,11 +62,9 @@ function Write-log {
             $LogData | Out-File "$CentralErrorRepo\$($env:COMPUTERNAME).txt" -Encoding ascii -Append
         } else {
             $global:NoCentralErrorRepo = $true
+            Write-log -data "Central ErrorLog Folder not accessible. Recieved path is $($CentralErrorRepo)" -path $path
         }
     }
-    if ($NoCentralErrorRepo) {
-        #Write-log -data "Central ErrorLog Folder not accessible. Recieved path is $($CentralErrorRepo)"
-    } 
 
 }
 

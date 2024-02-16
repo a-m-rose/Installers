@@ -21,10 +21,15 @@ $ErrorState = $false
 
 # Cleaning up in case of mistakes.
 if ($workingDir) {$workingDir = $workingDir.trimend("\")}
-if ($InstallSource) {$InstallSource = $InstallSource.trimend("\")}
 if ($CentralErrorRepo) {$CentralErrorRepo = $CentralErrorRepo.trimend("\")}
-if ($centralReportRepo) {$centralReportRepo = $centralReportRepo.trimend("\")}
-if ($InstallSource.Substring($InstallSource.Length -4) -match "\.exe") {$InstallerName = Split-Path $InstallSource -Leaf; $Installsource = Split-Path $InstallSource}   
+if ($centralReportRepo) {$centralReportRepo = $centralReportRepo.trimend("\")}  
+if ($InstallSource) {
+    $InstallSource = $InstallSource.trimend("\")
+    if ($InstallSource.Substring($InstallSource.Length -4) -match "\.exe") {
+        $InstallerName = Split-Path $InstallSource -Leaf; $Installsource = Split-Path $InstallSource
+    } 
+}
+
 
 function Write-log {
     Param(
@@ -33,36 +38,37 @@ function Write-log {
         [switch]$Errorlog
     )
 
+    $logtype = "verbose"
     if ($Errorlog) {
         $logtype = "Errors"
-    } else {
-        $logtype = "verbose"
     }
+
     $LogData = "$(get-date -Format G),$LogType,$($data)"
     
+    # Always write to local log path.
     $LogData | Out-File $path -Encoding ascii -Append
-    
+
+    # Populate a globalally scoped variable with error info to be used when opening a ticket.
+    if ($Errorlog) {
+        $global:ErrorMessage += "`r`n$($data)"
+    }
+
     if ($centralReportRepo -and (-not $NocentralReportRepo)) {
-        if (Test-Path $centralReportRepo) {
+        try {
             $LogData | Out-File "$centralReportRepo\$($env:COMPUTERNAME).txt" -Encoding ascii -Append
-        } else {
+        } catch {
             $global:NocentralReportRepo = $true
-            Write-log -ErrorLog -data "Central Log Folder not accessible. Recieved path is $($centralReportRepo)" -path $path    
+            Write-log -ErrorLog -data "Error writing log to central folder. Exception: $($_.exception.message)" -path $path
         }
     }
 
-    if ($Errorlog) {
-
-        $global:ErrorMessage += "`r`n$($data)"
-
-    }
     # Send Error logs also to a seperate error log folder.
-    if (($Errorlog) -and $CentralErrorRepo -and (-not $NoCentralErrorRepo)) {
-        if (Test-Path $CentralErrorRepo) {
+    if ($Errorlog -and (-not $NoCentralErrorRepo)) {
+        try {
             $LogData | Out-File "$CentralErrorRepo\$($env:COMPUTERNAME).txt" -Encoding ascii -Append
-        } else {
+        } catch {
             $global:NoCentralErrorRepo = $true
-            Write-log -Errorlog -data "Central ErrorLog Folder not accessible. Recieved path is $($CentralErrorRepo)" -path $path
+            Write-log -Errorlog -data "Error writing error log to central folder. Exception: $($_.exception.message)" -path $path
         }
     }
 
@@ -124,17 +130,18 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
 
 } else {
 
-    if (-not $InstallSource) {
-        write-log -data "No install source provided. Falling back to Internet Source."
+    if ((-not $InstallSource)) {
+        write-log -data "No install source provided. Falling back to local Source."
         $InstallSource = $workingDir
     }
-    if (Test-Path "$InstallSource\$InstallerName") {
-        write-log -data "S1_Installer_Accessible. No need to redownload."
-    } else {
-
-        write-log -data "Installer not accessible at $InstallSource\$InstallerName. Falling back to internet source."
-        # If install source path not accessible fall back to internet source. 
+    if (-not (Test-Path "$InstallSource\$InstallerName")) {
+        write-log -data "Installer not accessible at $InstallSource\$InstallerName. Falling back to local source."
         $InstallSource = $workingDir
+    }
+
+    if (Test-Path "$InstallSource\$InstallerName") {
+        write-log -data "S1_Installer_Accessible at $InstallSource\$InstallerName No need to redownload."
+    } else {
         write-log -data "S1_Being_Downloaded"
         try {
             Invoke-RestMethod -Method get -uri "https://s3.us-east-1.wasabisys.com/amrose/$InstallerName" -OutFile "$InstallSource\$InstallerName"

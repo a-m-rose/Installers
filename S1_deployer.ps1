@@ -115,7 +115,7 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
         where-object { $_.displayname -eq 'Symantec Endpoint Protection' } |
         foreach-object {
         
-            & msiexec.exe /x $($_.uninstallstring -replace 'MsiExec.exe /i', '') /qn /log "$((Get-Item $centralReportRepo\..\..).fullname)\SEP\Uninstall_Logs"
+            & msiexec.exe /x $($_.uninstallstring -replace 'MsiExec.exe /i', '') /qn /log "$((Get-Item $centralReportRepo\..\..).fullname)\SEP\Uninstall_Logs\$($nev:computername).txt"
             write-log -data "SEP installed found on this machine. Triggering uninstallation." 
         }
 

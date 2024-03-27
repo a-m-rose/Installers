@@ -108,7 +108,13 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
 
     
     # Collect S1 state from previous script run.
-    $PreviousS1State = get-content $workingDir\S1_Status.json -ErrorAction:SilentlyContinue | ConvertFrom-Json
+    try { $PreviousS1State = get-content $workingDir\S1_Status.json -ErrorAction:stop | ConvertFrom-Json }
+    catch { $PreviousS1State = [pscustomobject]@{
+            "SentinelState" = $true
+            "MonitorState"  = $true
+            "AgentState"    = $true
+        }
+    }
     Write-log -data "Previous S1 state: $($PreviousS1State)."
     Write-log -data "Note: First time script runs this should be empty."
 

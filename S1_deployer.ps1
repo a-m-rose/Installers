@@ -19,14 +19,15 @@ param (
 $ProgressPreference = "SilentlyContinue"
 $ErrorState = $false
 
-# Cleaning up in case of mistakes.
+# Cleaning up variable data in case of entry mistakes.
 if ($workingDir) {$workingDir = $workingDir.trimend("\")}
 if ($CentralErrorRepo) {$CentralErrorRepo = $CentralErrorRepo.trimend("\")}
 if ($centralReportRepo) {$centralReportRepo = $centralReportRepo.trimend("\")}  
 if ($InstallSource) {
     $InstallSource = $InstallSource.trimend("\")
     if ($InstallSource.Substring($InstallSource.Length -4) -match "\.exe") {
-        $InstallerName = Split-Path $InstallSource -Leaf; $Installsource = Split-Path $InstallSource
+        $InstallerName = Split-Path $InstallSource -Leaf
+        $Installsource = Split-Path $InstallSource
     } 
 }
 
@@ -105,11 +106,21 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
     write-log -data "SentinelCTL status output: $($SentinelStatusOutput)"
     write-log -data "Script parsting of SentinelCTL status: $($SentinelStatus)"
 
+    
+    # Collect S1 state from previous script run.
+    $PreviousS1State = get-content $workingDir\S1_Status.json -ErrorAction:SilentlyContinue | ConvertFrom-Json
+    Write-log -data "Previous S1 state: $($PreviousS1State)."
+    Write-log -data "Note: First time script runs this should be empty."
 
-    # If sentinelOne Installed and running try to uninstall SEP if installed.
+    # Output current S1 state overwriting the old state since we any collected it.
+    $SentinelStatus | ConvertTo-Json | Out-File $workingDir\S1_Status.json -Force
+
+    # Check S1 run status
     if ($SentinelStatus.AgentState -and $SentinelStatus.MonitorState -and $SentinelStatus.SentinelState) {
 
         write-log -data "S1 seems to be running fine."
+
+        # If sentinelOne Installed and running try to uninstall SEP if installed.
         Get-Childitem 'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall' |
         foreach-object { Get-ItemProperty "Microsoft.PowerShell.Core\Registry::$_" } |
         where-object { $_.displayname -eq 'Symantec Endpoint Protection' } |
@@ -120,12 +131,27 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
         }
 
     } else {
-        
-        $ErrorState = $true
-        Write-log -ErrorLog -data "S1 is installed but not running on this computer"
-        Write-log -ErrorLog -data "$($SentinelStatusOutput)"
-        Write-log -ErrorLog -data "$($SentinelStatus)"
 
+        # Only if the previous S1 status check was already bad and it's the same component not working we want to open a ticket.
+        if (-not ($PreviousS1State.AgentState -and $PreviousS1State.MonitorState -and $PreviousS1State.SentinelState) -and
+                (
+                    (($PreviousS1State.AgentState, $SentinelStatus.AgentState) -notcontains $true) -or
+                    (($PreviousS1State.MonitorState, $SentinelStatus.MonitorState) -notcontains $true) -or
+                    (($PreviousS1State.SentinelState, $SentinelStatus.SentinelState) -notcontains $true)
+                )
+            ) {
+
+            $ErrorState = $true
+            Write-log -ErrorLog -data "S1 is installed but not running on this computer for at least 2 script runs."
+            Write-log -ErrorLog -data "$($SentinelStatusOutput)"
+            Write-log -ErrorLog -data "$($SentinelStatus)"
+
+        } else {
+
+            Write-log -data "S1 is installed but not running on this computer."
+            Write-log -data "Not opening ticket since this is either the first time there is an issue, or the issue is not the same as last time."
+
+        }
     }
 
 } else {

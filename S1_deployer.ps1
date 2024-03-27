@@ -104,7 +104,7 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
     }
 
     write-log -data "SentinelCTL status output: $($SentinelStatusOutput)"
-    write-log -data "Script parsting of SentinelCTL status: $($SentinelStatus)"
+    write-log -data "Script parsing of SentinelCTL status: $($SentinelStatus)"
 
     
     # Collect S1 state from previous script run.
@@ -115,17 +115,16 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
     catch {
         Write-log -data "No previous S1 state. Setting all to true for additional script checks."    
         $PreviousS1State = [pscustomobject]@{
-
             "SentinelState" = $true
             "MonitorState"  = $true
             "AgentState"    = $true
         }
     }
     
-    # Output current S1 state overwriting the old state since we any collected it.
+    # Output current S1 state overwriting the old state since we already collected it.
     $SentinelStatus | ConvertTo-Json | Out-File $workingDir\S1_Status.json -Force
 
-    # Check S1 run status
+    # Check curret S1 status
     if ($SentinelStatus.AgentState -and $SentinelStatus.MonitorState -and $SentinelStatus.SentinelState) {
 
         write-log -data "S1 seems to be running fine."
@@ -142,19 +141,20 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
 
     } else {
 
-        # Only if the previous S1 status check was already bad and it's the same component not working we want to open a ticket.
+        # Set error state only if the previous S1 status check was already bad and the same component is now not working as well.
         if (-not ($PreviousS1State.AgentState -and $PreviousS1State.MonitorState -and $PreviousS1State.SentinelState) -and
-                (
-                    (($PreviousS1State.AgentState, $SentinelStatus.AgentState) -notcontains $true) -or
-                    (($PreviousS1State.MonitorState, $SentinelStatus.MonitorState) -notcontains $true) -or
-                    (($PreviousS1State.SentinelState, $SentinelStatus.SentinelState) -notcontains $true)
-                )
-            ) {
+            (
+                (($PreviousS1State.AgentState, $SentinelStatus.AgentState) -notcontains $true) -or
+                (($PreviousS1State.MonitorState, $SentinelStatus.MonitorState) -notcontains $true) -or
+                (($PreviousS1State.SentinelState, $SentinelStatus.SentinelState) -notcontains $true)
+            )
+        ) {
 
             $ErrorState = $true
             Write-log -ErrorLog -data "S1 is installed but not running on this computer for at least 2 script runs."
             Write-log -ErrorLog -data "$($SentinelStatusOutput)"
-            Write-log -ErrorLog -data "$($SentinelStatus)"
+            Write-log -ErrorLog -data "Parsed Current S1 State: $($SentinelStatus)"
+            Write-log -ErrorLog -data "Previous S1 State: $($PreviousS1State)"
 
         } else {
 
@@ -213,7 +213,6 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
             write-log -ErrorLog -data "Install_Failed_$($_.exception.message)"
             $ErrorState = $true
         }
-        #Exit codes - https://usea1-pax8-03.sentinelone.net/docs/en/return-codes-after-installing-or-updating-windows-agents.html
 
         If ($InstallExitCode -notmatch "\b0\b|\b12\b") {
 

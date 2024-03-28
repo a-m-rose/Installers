@@ -76,7 +76,7 @@ function Write-log {
 }
 
 write-log -data "Script running"
-write-log -data $PSScriptRoot
+write-log -data " Script Path: $PSScriptRoot"
 
 
 try {
@@ -178,19 +178,23 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
     if (Test-Path "$InstallSource\$InstallerName") {
         write-log -data "S1_Installer_Accessible at $InstallSource\$InstallerName No need to redownload."
     } else {
-        write-log -data "S1_Being_Downloaded"
+        write-log -data "S1 installer not accessible at $InstallSource\$InstallerName. Downloading from web."
         try {
-            Invoke-RestMethod -Method get -uri "https://s3.us-east-1.wasabisys.com/amrose/$InstallerName" -OutFile "$InstallSource\$InstallerName"
+            $URI = "https://s3.us-east-1.wasabisys.com/amrose/$InstallerName"
+            write-log -data "Download URI: $URI"
+            Invoke-RestMethod -Method get -uri $URI -OutFile "$InstallSource\$InstallerName"
         }
         catch {
             write-log -ErrorLog -data "Veriable_InstallerName_Download_failed"
+            write-log -ErrorLog -data "URL: https://s3.us-east-1.wasabisys.com/amrose/$InstallerName"
             $originalerror = $_.exception.message
             Write-log -ErrorLog -data $originalerror
             try {
                 Write-log -data "Falling back to hardcoded installer download link."
-                Invoke-RestMethod -Method get -uri "https://s3.us-east-1.wasabisys.com/amrose/s1.exe" -OutFile "$InstallSource\S1.exe"
+                Invoke-RestMethod -Method get -uri "https://s3.us-east-1.wasabisys.com/amrose/S1.exe" -OutFile "$InstallSource\S1.exe"
             } catch {
                 Write-log -ErrorLog -data "Hardcoded_InstallerName_download_Failed."
+                write-log -ErrorLog -data "URL: https://s3.us-east-1.wasabisys.com/amrose/s1.exe"
                 $originalerror = $_.exception.message
                 Write-log -ErrorLog -data $_.exception.message
                 $ErrorState = $true

@@ -76,7 +76,7 @@ function Write-log {
 }
 
 write-log -data "Script running"
-write-log -data " Script Path: $PSScriptRoot"
+write-log -data "Script Path: $PSScriptRoot"
 
 
 try {
@@ -138,7 +138,22 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
             & msiexec.exe /x $($_.uninstallstring -replace 'MsiExec.exe /i', '') /qn
             write-log -data "SEP installed found on this machine. Triggering uninstallation." 
         }
-
+        # Uninstall Defender on ServerOS
+        If ((Get-CimInstance -ClassName Win32_OperatingSystem).Caption -match "Server") {
+            Write-log -data "OS is Server OS."
+            $defender = Get-WindowsFeature Windows-Defender
+            if (($Defender).Installed) {
+                Write-log -data "Defender being uninstalled."
+                $DefenderResults = uninstall-windowsfeature -name "Windows-Defender" -restart:$false
+            } else {
+                Write-log -data "Defender not installed."
+            }
+            if ($DefenderResults.success) {
+                Write-log -data "Defender uninstall successful."
+            } else {
+                Write-log -ErrorLog -data "Defender uninstall Failed.`n$DefenderResults"
+            }
+        }
     } else {
 
         # Set error state only if the previous S1 status check was already bad and the same component is now not working as well.

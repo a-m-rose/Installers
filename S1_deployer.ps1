@@ -145,13 +145,13 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
             if (($Defender).Installed) {
                 Write-log -data "Defender being uninstalled."
                 $DefenderResults = uninstall-windowsfeature -name "Windows-Defender" -restart:$false
+                if ($DefenderResults.success) {
+                    Write-log -data "Defender uninstall successful."
+                } else {
+                    Write-log -ErrorLog -data "Defender uninstall Failed.`n$DefenderResults"
+                }
             } else {
                 Write-log -data "Defender not installed."
-            }
-            if ($DefenderResults.success) {
-                Write-log -data "Defender uninstall successful."
-            } else {
-                Write-log -ErrorLog -data "Defender uninstall Failed.`n$DefenderResults"
             }
         }
     } else {

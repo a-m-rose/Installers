@@ -21,9 +21,9 @@ if (-not $FirstRunCompleted.FirstRunCompleted) {
 
 $Results = Get-ItemProperty -Path $key -name $property 
 
-if ($Results.AutoStartUpdate -eq 0 -and $FirstRunCompleted) { 
+if ($Results.AutoStartUpdate -eq 0) { 
     Set-ItemProperty -Path $Key -name $property -Value 1 -Force 
-    if ($BootTime.lastbootuptime -le (get-date).AddMinutes(-10)) { 
+    if ($BootTime.lastbootuptime -le (get-date).AddMinutes(-10) -and $FirstRunCompleted) { 
         "$time :: $($env:computername),0" | out-file $logpath -Append -Encoding ascii 
     } 
 }

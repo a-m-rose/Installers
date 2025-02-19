@@ -181,68 +181,68 @@ if ((Test-Path 'C:\Program Files\SentinelOne\Sentinel Agent *\SentinelCtl.exe') 
 
 } else {
 
-    if ((-not $InstallSource)) {
-        write-log -data "No install source provided. Falling back to local Source."
-        $InstallSource = $workingDir
-    }
-    if (-not (Test-Path "$InstallSource\$InstallerName")) {
-        write-log -data "Installer not accessible at $InstallSource\$InstallerName. Falling back to local source."
-        $InstallSource = $workingDir
-    }
+    # if ((-not $InstallSource)) {
+    #     write-log -data "No install source provided. Falling back to local Source."
+    #     $InstallSource = $workingDir
+    # }
+    # if (-not (Test-Path "$InstallSource\$InstallerName")) {
+    #     write-log -data "Installer not accessible at $InstallSource\$InstallerName. Falling back to local source."
+    #     $InstallSource = $workingDir
+    # }
 
-    if (Test-Path "$InstallSource\$InstallerName") {
-        write-log -data "S1_Installer_Accessible at $InstallSource\$InstallerName No need to redownload."
-    } else {
-        write-log -data "S1 installer not accessible at $InstallSource\$InstallerName. Downloading from web."
-        try {
-            $URI = "https://s3.us-east-1.wasabisys.com/amrose/$InstallerName"
-            write-log -data "Download URI: $URI"
-            Invoke-RestMethod -Method get -uri $URI -OutFile "$InstallSource\$InstallerName"
-        }
-        catch {
-            write-log -ErrorLog -data "Veriable_InstallerName_Download_failed"
-            write-log -ErrorLog -data "URL: https://s3.us-east-1.wasabisys.com/amrose/$InstallerName"
-            $originalerror = $_.exception.message
-            Write-log -ErrorLog -data $originalerror
-            try {
-                Write-log -data "Falling back to hardcoded installer download link."
-                Invoke-RestMethod -Method get -uri "https://s3.us-east-1.wasabisys.com/amrose/S1.exe" -OutFile "$InstallSource\S1.exe"
-            } catch {
-                Write-log -ErrorLog -data "Hardcoded_InstallerName_download_Failed."
-                write-log -ErrorLog -data "URL: https://s3.us-east-1.wasabisys.com/amrose/s1.exe"
-                $originalerror = $_.exception.message
-                Write-log -ErrorLog -data $_.exception.message
-                $ErrorState = $true
-            }
+    # if (Test-Path "$InstallSource\$InstallerName") {
+    #     write-log -data "S1_Installer_Accessible at $InstallSource\$InstallerName No need to redownload."
+    # } else {
+    #     write-log -data "S1 installer not accessible at $InstallSource\$InstallerName. Downloading from web."
+    #     try {
+    #         $URI = "https://s3.us-east-1.wasabisys.com/amrose/$InstallerName"
+    #         write-log -data "Download URI: $URI"
+    #         Invoke-RestMethod -Method get -uri $URI -OutFile "$InstallSource\$InstallerName"
+    #     }
+    #     catch {
+    #         write-log -ErrorLog -data "Veriable_InstallerName_Download_failed"
+    #         write-log -ErrorLog -data "URL: https://s3.us-east-1.wasabisys.com/amrose/$InstallerName"
+    #         $originalerror = $_.exception.message
+    #         Write-log -ErrorLog -data $originalerror
+    #         try {
+    #             Write-log -data "Falling back to hardcoded installer download link."
+    #             Invoke-RestMethod -Method get -uri "https://s3.us-east-1.wasabisys.com/amrose/S1.exe" -OutFile "$InstallSource\S1.exe"
+    #         } catch {
+    #             Write-log -ErrorLog -data "Hardcoded_InstallerName_download_Failed."
+    #             write-log -ErrorLog -data "URL: https://s3.us-east-1.wasabisys.com/amrose/s1.exe"
+    #             $originalerror = $_.exception.message
+    #             Write-log -ErrorLog -data $_.exception.message
+    #             $ErrorState = $true
+    #         }
 
-        }
-    }
+    #     }
+    # }
 
 
-    if (-not $ErrorState) {
+    # if (-not $ErrorState) {
 
-        # Install Process
-        Try {
-            write-log -data "S1_Install_Started_Source_$installsource\$installername"
-            $installProcess = Start-Process -NoNewWindow -PassThru -Wait -FilePath "$InstallSource\$InstallerName" -ArgumentList "-q -t $($InstallToken)"
-            $InstallExitCode = $installProcess.ExitCode
-            write-log -data "Install_ExitCode_$InstallExitCode"
-        }
-        Catch {
-            write-log -ErrorLog -data "Install_Failed_$($_.exception.message)"
-            $ErrorState = $true
-        }
+    #     # Install Process
+    #     Try {
+    #         write-log -data "S1_Install_Started_Source_$installsource\$installername"
+    #         $installProcess = Start-Process -NoNewWindow -PassThru -Wait -FilePath "$InstallSource\$InstallerName" -ArgumentList "-q -t $($InstallToken)"
+    #         $InstallExitCode = $installProcess.ExitCode
+    #         write-log -data "Install_ExitCode_$InstallExitCode"
+    #     }
+    #     Catch {
+    #         write-log -ErrorLog -data "Install_Failed_$($_.exception.message)"
+    #         $ErrorState = $true
+    #     }
 
-        If ($InstallExitCode -notmatch "\b0\b|\b12\b") {
+    #     If ($InstallExitCode -notmatch "\b0\b|\b12\b") {
 
-            $ErrorState = $true
-            $exitcodemessage = "Installer exit code indicates installation not 100% success.
-                                Exit Code:$($installProcess.ExitCode)
-                                See link for S1 exit codes values - https://usea1-pax8-03.sentinelone.net/docs/en/return-codes-after-installing-or-updating-windows-agents.html"
-            write-log -ErrorLog -data $exitcodemessage
+    #         $ErrorState = $true
+    #         $exitcodemessage = "Installer exit code indicates installation not 100% success.
+    #                             Exit Code:$($installProcess.ExitCode)
+    #                             See link for S1 exit codes values - https://usea1-pax8-03.sentinelone.net/docs/en/return-codes-after-installing-or-updating-windows-agents.html"
+    #         write-log -ErrorLog -data $exitcodemessage
 
-        }
-    }
+    #     }
+    # }
 
 }
 

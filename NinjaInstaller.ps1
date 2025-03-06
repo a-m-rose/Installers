@@ -3,27 +3,34 @@ $regName = "DivisionUID"
 $expectedValue = "f68396d5-b1fa-4799-83d3-5e107c33d0f2"
 $ProgressPreference = 'SilentlyContinue'
 
-if (!(Test-Path $regPath) -or (Get-ItemPropertyValue -Path $regPath -Name $regName -ErrorAction SilentlyContinue) -ne $expectedValue) {
+# Replace Get-ItemPropertyValue with Get-ItemProperty for v2.0 compatibility
+if (!(Test-Path $regPath) -or ((Get-ItemProperty -Path $regPath -Name $regName -ErrorAction SilentlyContinue).$regName) -ne $expectedValue) {
     if (Test-Path $regPath) {
         Write-Output "Ninja previous installation found. Will uninstall."
         # Uninstall
         Write-Output "We are disabling uninstall protection in case there is any."
-        $NinjaFolder = gci 'C:\Program Files (x86)\*\ninjarmmagent.exe'
-        & "$($NinjaFolder.fullname)" -disableUninstallPrevention
+        $NinjaFolder = Get-ChildItem 'C:\Program Files (x86)\*\ninjarmmagent.exe'
+        & "$($NinjaFolder.FullName)" -disableUninstallPrevention
 
         Write-Output "Stopping service and process to prevent uninstallation hanging."
-        if ((Get-Service ninjarmmagent).status -eq "running") {
-            Stop-Service -Name ninjarmmagent -NoWait
-            Stop-Process -Id (Get-WmiObject -Query "select * from win32_service where name='ninjarmmagent'").ProcessId -Force
+        $service = Get-Service -Name "ninjarmmagent" -ErrorAction SilentlyContinue
+        if ($service -and $service.Status -eq "Running") {
+            Stop-Service -Name "ninjarmmagent" -NoWait
+            $serviceProcess = Get-WmiObject -Query "SELECT * FROM Win32_Service WHERE Name='ninjarmmagent'"
+            if ($serviceProcess) {
+                Stop-Process -Id $serviceProcess.ProcessId -Force
+            }
         }
 
         Write-Output "Triggering uninstallation"
-        $uninstallString = "$((Get-ItemProperty -Path HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*| ? {$_.displayname -Match "NinjaRMMAgent" -and ($_.uninstallstring -match "msiexec")}).UninstallString -replace "MsiExec.exe ")"
-        Start-Process -NoNewWindow -PassThru -Wait -FilePath "msiexec.exe" -ArgumentList "$uninstallString /qn"
+        $uninstallEntry = Get-ItemProperty -Path "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" | Where-Object { $_.DisplayName -match "NinjaRMMAgent" -and $_.UninstallString -match "msiexec" }
+        if ($uninstallEntry) {
+            $uninstallString = $uninstallEntry.UninstallString -replace "MsiExec.exe ", ""
+            Start-Process -NoNewWindow -Wait -FilePath "msiexec.exe" -ArgumentList "$uninstallString /qn"
+        }
     } else {
         Write-Output "NINJA not yet installed"
     }
-
 
     Function Get-InteractiveNINJAToken {
         # Load WPF assemblies
@@ -33,9 +40,13 @@ if (!(Test-Path $regPath) -or (Get-ItemPropertyValue -Path $regPath -Name $regNa
 
         # Read mappings from file into a hashtable
         $mappings = @{}
-        (Invoke-RestMethod "https://raw.githubusercontent.com/a-m-rose/Installers/refs/heads/master/NINJA_mappings.txt") -split "`n"| ForEach-Object {
-            if ($_ -match "^([^=]+)=(.+)$") {
-                $mappings[$matches[1]] = $matches[2]
+        $request = New-Object System.Net.WebClient
+        $MappingFile = $request.DownloadString("https://raw.githubusercontent.com/a-m-rose/Installers/refs/heads/master/NINJA_mappings.txt")
+        if ($MappingFile) {
+            $MappingFile -split "`n"| ForEach-Object {
+                if ($_ -match "^([^=]+)=(.+)$") {
+                    $mappings[$matches[1]] = $matches[2]
+                }
             }
         }
 
@@ -128,7 +139,8 @@ if (!(Test-Path $regPath) -or (Get-ItemPropertyValue -Path $regPath -Name $regNa
     if ($env:NINJAToken) {
         Write-Output "Got the following NINJA token: $($env:NINJAToken)"
         Write-Output "Downloading the installer"
-        Invoke-WebRequest -Uri "https://app.ninjarmm.com/ws/api/v2/generic-installer/NinjaOneAgent-x86.msi" -OutFile "c:\windows\temp\NinjaOneAgent-x86.msi"
+        $webClient = New-Object System.Net.WebClient
+        $webClient.DownloadFile("https://app.ninjarmm.com/ws/api/v2/generic-installer/NinjaOneAgent-x86.msi", "c:\windows\temp\NinjaOneAgent-x86.msi")
         Write-Output "Starting installation"
         Start-Process -NoNewWindow -PassThru -Wait -FilePath "msiexec.exe" -ArgumentList "-i `"c:\windows\temp\NinjaOneAgent-x86.msi`" TOKENID=$($env:NINJAToken)"
     } else {

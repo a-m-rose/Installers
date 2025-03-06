@@ -119,10 +119,10 @@ if (!(Test-Path $regPath) -or (Get-ItemPropertyValue -Path $regPath -Name $regNa
         $window.ShowDialog() | Out-Null
     }
 
-    if ([string]::IsNullOrWhiteSpace($env:NINJAToken)) {
+    if ([string]::IsNullOrEmpty($env:NINJAToken)) {
         $env:NINJAToken = Get-Content "\\$((Get-WmiObject Win32_ComputerSystem).Domain)\netlogon\NINJATOKEN.txt" -ErrorAction:SilentlyContinue
     }
-    if ([string]::IsNullOrWhiteSpace($env:NINJAToken)) {
+    if ([string]::IsNullOrEmpty($env:NINJAToken)) {
         Get-InteractiveNINJAToken
     }
     if ($env:NINJAToken) {

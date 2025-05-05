@@ -63,3 +63,4 @@ Starfire=3ef5467b-05f6-41fb-a515-8f99f5da6d2c
 Svelte=0f7a054b-8730-42ae-a917-ac48ddfea61b
 TSK=d3653ad2-61e8-48d6-9fd7-06a34c5820c5
 United Supply=d040bff4-cc96-48f2-9486-c3418a973909
+Vedorium=05b3b07b-0a97-40cb-b82e-6450ef2e133d

@@ -3,6 +3,7 @@ Aleksander=36a13738-5e30-4da3-b53a-a790c2984ee3
 All Data Health=c78a18bf-fff7-4663-ae00-2c024d197b21
 AOS=2e90cce2-376d-4627-af9b-92d3e7d5598c
 Avalon=7a999f6c-a486-43c8-a4a9-1cf393eb2c85
+A.M. Rose=2d4110f6-417d-40c6-b907-55c2be53844e
 Balanced Accounts=936dce6e-cf91-440c-8f68-8be2feb64b0f
 Beam=70497b41-a64c-44b1-b1f8-7d3da620729d
 Berkoff=4664eb40-ce8a-49e3-8eed-3891f3d1b57a

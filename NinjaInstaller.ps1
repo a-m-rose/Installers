@@ -49,9 +49,6 @@ if (!(Test-Path $regPath) -or ((Get-ItemProperty -Path $regPath -Name $regName -
                 }
             }
         }
-	
-		# Replace the original hashtable with the sorted one
-		$mappings = $sortedMappings
 
 
         # Define XAML for the WPF window

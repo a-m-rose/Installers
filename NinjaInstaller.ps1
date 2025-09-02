@@ -50,6 +50,17 @@ if (!(Test-Path $regPath) -or ((Get-ItemProperty -Path $regPath -Name $regName -
             }
         }
 
+        ###added Sorting for list 9/2/2025###
+		# Rebuild into a sorted, ordered hashtable
+		$sortedMappings = [ordered]@{}
+		$mappings.GetEnumerator() | Sort-Object Name | ForEach-Object {
+		$sortedMappings[$_.Name] = $_.Value
+		}
+		
+		# Replace the original hashtable with the sorted one
+		$mappings = $sortedMappings
+
+
         # Define XAML for the WPF window
         $xaml ='
         <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"

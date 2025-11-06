@@ -1,0 +1,2 @@
+Invoke-WebRequest -Uri "https://amrose.rmmservice.com/ws/api/v2/generic-installer/NinjaOneAgent-x86.msi" -OutFile ".\NinjaOneAgent-x86.msi"
+msiexec.exe -i NinjaOneAgent-x86.msi TOKENID="db43b945-1041-4d75-af7b-8b5949a24cd9"

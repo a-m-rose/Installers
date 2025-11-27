@@ -1,3 +1,15 @@
+Add-Type -AssemblyName System.Windows.Forms
+$MarkerPath = "C:\ProgramData\OfficeInstallPending.txt"
+$result = [System.Windows.Forms.MessageBox]::Show(
+    "Does this computer need Office installed?",
+    "Office Install Required?",
+    [System.Windows.Forms.MessageBoxButtons]::YesNo,
+    [System.Windows.Forms.MessageBoxIcon]::Question
+)
+if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
+    New-Item -Path $MarkerPath -ItemType File -Force | Out-Null
+}
+
 $regPath = "hklm:\SOFTWARE\WOW6432Node\NinjaRMM LLC\NinjaRMMAgent\Server\"
 $regName = "DivisionUID"
 $expectedValue = "f68396d5-b1fa-4799-83d3-5e107c33d0f2"

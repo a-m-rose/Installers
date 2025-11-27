@@ -1,3 +1,13 @@
+$filePath = "C:\ProgramData\OfficeInstallPending.txt"
+$response = Read-Host "Does this computer need Office installed? (Yes/No)"
+$response = $response.Trim().ToLower()
+if ($response -eq "yes" -or $response -eq "y") {
+        New-Item -Path $filePath -ItemType File -Force | Out-Null
+} elseif ($response -eq "no" -or $response -eq "n") {
+} else {
+    Write-Host "Invalid input. Please enter Yes or No."
+}
+
 $regPath = "hklm:\SOFTWARE\WOW6432Node\NinjaRMM LLC\NinjaRMMAgent\Server\"
 $regName = "DivisionUID"
 $expectedValue = "f68396d5-b1fa-4799-83d3-5e107c33d0f2"

@@ -1,11 +1,13 @@
-$filePath = "C:\ProgramData\OfficeInstallPending.txt"
-$response = Read-Host "Does this computer need Office installed? (Yes/No)"
-$response = $response.Trim().ToLower()
-if ($response -eq "yes" -or $response -eq "y") {
-        New-Item -Path $filePath -ItemType File -Force | Out-Null
-} elseif ($response -eq "no" -or $response -eq "n") {
-} else {
-    Write-Host "Invalid input. Please enter Yes or No."
+Add-Type -AssemblyName System.Windows.Forms
+$MarkerPath = "C:\ProgramData\OfficeInstallPending.txt"
+$result = [System.Windows.Forms.MessageBox]::Show(
+    "Does this computer need Office installed?",
+    "Office Install Required?",
+    [System.Windows.Forms.MessageBoxButtons]::YesNo,
+    [System.Windows.Forms.MessageBoxIcon]::Question
+)
+if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
+    New-Item -Path $MarkerPath -ItemType File -Force | Out-Null
 }
 
 $regPath = "hklm:\SOFTWARE\WOW6432Node\NinjaRMM LLC\NinjaRMMAgent\Server\"
